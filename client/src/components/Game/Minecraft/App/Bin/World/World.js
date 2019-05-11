@@ -1,155 +1,157 @@
-import * as THREE from 'three'
+import * as THREE from "three";
 
-import Config from '../../../Data/Config'
-import Chunk from './Chunk/Chunk'
-import Helpers from '../../../Utils/Helpers'
-import worker from './World.worker'
-import { UPDATE_BLOCK_MUTATION } from '../../../../../../lib/graphql'
-import WorkerPool from '../Workers/WorkerPool'
-import TaskQueue from '../Workers/TaskQueue'
+import Config from "../../../Data/Config";
+import Chunk from "./Chunk/Chunk";
+import Helpers from "../../../Utils/Helpers";
+import worker from "./World.worker";
+import { UPDATE_BLOCK_MUTATION } from "../../../../../../lib/graphql";
+import WorkerPool from "../Workers/WorkerPool";
+import TaskQueue from "../Workers/TaskQueue";
 
 const size = Config.chunk.size,
   height = Config.chunk.height,
   horzD = Config.player.horzD,
   vertD = Config.player.vertD,
-  noiseConstant = Config.world.noiseConstant
+  noiseConstant = Config.world.noiseConstant,
+  biomeConstant = Config.world.biomeConstant,
+  caves = Config.world.caves;
 
 class World {
   constructor(id, scene, worldData, apolloClient, resourceManager) {
-    const { seed, name, changedBlocks } = worldData
+    const { seed, name, changedBlocks } = worldData;
 
-    this.chunkDimension = Config.chunk.size * Config.block.dimension
+    this.chunkDimension = Config.chunk.size * Config.block.dimension;
 
-    this.id = id
-    this.seed = seed
-    this.name = name
+    this.id = id;
+    this.seed = seed;
+    this.name = name;
 
     // Connections to outer space
-    this.scene = scene
+    this.scene = scene;
 
     // World Generating Helpers
-    this.chunks = {}
-    this.changedBlocks = {}
+    this.chunks = {};
+    this.changedBlocks = {};
 
     // Workers
-    this.setupWorkerConfigs()
-    this.workerPool = new WorkerPool(worker, this.workerCallback)
-    this.workerTaskHandler = new TaskQueue() // This is handle/schedule all the tasks from worker callback
+    this.setupWorkerConfigs();
+    this.workerPool = new WorkerPool(worker, this.workerCallback);
+    this.workerTaskHandler = new TaskQueue(); // This is handle/schedule all the tasks from worker callback
 
     // Texture
-    this.resourceManager = resourceManager
+    this.resourceManager = resourceManager;
 
     // World Change Helpers
-    this.targetBlock = null
-    this.potentialBlock = null
+    this.targetBlock = null;
+    this.potentialBlock = null;
 
     // Server Communicatin
-    this.apolloClient = apolloClient
+    this.apolloClient = apolloClient;
 
-    this.initWorld(changedBlocks)
+    this.initWorld(changedBlocks);
   }
 
   setupWorkerConfigs = () => {
     // Initializing worker callback for later usage
     this.workerCallback = ({ data }) => {
       // console.time('workerCallback')
-      const { cmd } = data
+      const { cmd } = data;
       switch (cmd) {
-        case 'GET_CHUNK': {
-          const { quads, blocks, chunkName } = data
-          const temp = this.chunks[chunkName]
+        case "GET_CHUNK": {
+          const { quads, blocks, chunkName } = data;
+          const temp = this.chunks[chunkName];
 
-          temp.setGrid(blocks)
+          temp.setGrid(blocks);
           this.workerTaskHandler.addTasks(temp, [
             [temp.meshQuads, quads],
             [temp.combineMesh],
             [temp.markAsFinishedLoading]
-          ])
-          break
+          ]);
+          break;
         }
-        case 'UPDATE_BLOCK': {
+        case "UPDATE_BLOCK": {
           const {
             quads,
             block: { x, y, z },
             type,
             chunkName
-          } = data
+          } = data;
 
-          const temp = this.chunks[chunkName]
+          const temp = this.chunks[chunkName];
           this.workerTaskHandler.addTasks(temp, [
             [temp.meshQuads, quads],
             [temp.combineMesh]
-          ])
+          ]);
           this.workerTaskHandler.addTask(this, () => {
             // Remove old then add new to scene
-            const obj = this.scene.getObjectByName(chunkName)
-            if (obj) this.scene.remove(obj)
-            const mesh = temp.getMesh()
-            if (mesh instanceof THREE.Object3D) this.scene.add(mesh)
+            const obj = this.scene.getObjectByName(chunkName);
+            if (obj) this.scene.remove(obj);
+            const mesh = temp.getMesh();
+            if (mesh instanceof THREE.Object3D) this.scene.add(mesh);
 
             // Reset everything
-            this.targetBlock = null
-            this.potentialBlock = null
-          })
+            this.targetBlock = null;
+            this.potentialBlock = null;
+          });
           this.workerTaskHandler.addTask(this, () => {
-            temp.setBlock(x, y, z, type)
-            temp.untagBusyBlock(x, y, z)
-          })
+            temp.setBlock(x, y, z, type);
+            temp.untagBusyBlock(x, y, z);
+          });
 
-          break
+          break;
         }
         default:
-          break
+          break;
       }
       // console.timeEnd('workerCallback')
-    }
-  }
+    };
+  };
 
   initWorld = changedBlocks => {
     if (changedBlocks)
       // TYPE = ID
       changedBlocks.forEach(({ type, x, y, z }) => {
-        this.registerChangedBlock(type, x, y, z)
-      })
-  }
+        this.registerChangedBlock(type, x, y, z);
+      });
+  };
 
   requestMeshUpdate = ({ coordx, coordy, coordz }) => {
-    const updatedChunks = {}
+    const updatedChunks = {};
 
     for (let x = coordx - horzD; x <= coordx + horzD; x++)
       for (let z = coordz - horzD; z <= coordz + horzD; z++)
         for (let y = coordy - vertD; y <= coordy + vertD; y++) {
-          let tempChunk = this.chunks[Helpers.getCoordsRepresentation(x, y, z)]
+          let tempChunk = this.chunks[Helpers.getCoordsRepresentation(x, y, z)];
           if (!tempChunk) {
             this.registerChunk({
               coordx: x,
               coordy: y,
               coordz: z
-            })
-            continue
+            });
+            continue;
           }
-          if (tempChunk.loading) continue // Chunk workers are working on it
+          if (tempChunk.loading) continue; // Chunk workers are working on it
 
           // To reach here means the chunk is loaded and meshed.
-          updatedChunks[tempChunk.name] = true
+          updatedChunks[tempChunk.name] = true;
 
           if (!tempChunk.isLoaded) {
-            const mesh = tempChunk.getMesh()
-            if (mesh instanceof THREE.Object3D) this.scene.add(mesh)
+            const mesh = tempChunk.getMesh();
+            if (mesh instanceof THREE.Object3D) this.scene.add(mesh);
 
-            tempChunk.mark()
+            tempChunk.mark();
           }
         }
 
-    const shouldBeRemoved = []
+    const shouldBeRemoved = [];
     this.scene.children.forEach(child => {
       if (!updatedChunks[child.name] && child.isChunk) {
-        shouldBeRemoved.push(child)
-        this.chunks[child.name].unmark()
+        shouldBeRemoved.push(child);
+        this.chunks[child.name].unmark();
       }
-    })
-    shouldBeRemoved.forEach(obj => this.scene.remove(obj))
-  }
+    });
+    shouldBeRemoved.forEach(obj => this.scene.remove(obj));
+  };
 
   registerChunk = async ({ coordx, coordy, coordz }) => {
     const newChunk = new Chunk(this.resourceManager, {
@@ -158,28 +160,30 @@ class World {
         y: coordy,
         z: coordz
       }
-    })
-    this.chunks[newChunk.name] = newChunk
+    });
+    this.chunks[newChunk.name] = newChunk;
 
     this.workerPool.queueJob({
-      cmd: 'GET_CHUNK',
+      cmd: "GET_CHUNK",
       seed: this.seed,
       changedBlocks: this.changedBlocks,
       configs: {
         noiseConstant,
+        biomeConstant,
+        caves,
         size,
         height,
         stride: newChunk.grid.stride,
         chunkName: newChunk.name
       },
       coords: { coordx, coordy, coordz }
-    })
+    });
 
-    return newChunk
-  }
+    return newChunk;
+  };
 
   generateBlocks = (coordx, coordy, coordz) => {
-    const blocks = []
+    const blocks = [];
 
     // ! THIS IS WHERE CHUNK GENERATING HAPPENS FOR SINGLE CHUNK!
     for (let x = 0; x < size; x++)
@@ -204,50 +208,50 @@ class World {
                 coordy * size + y,
                 coordz * size + z
               )
-          })
+          });
         }
 
-    return blocks
-  }
+    return blocks;
+  };
 
   breakBlock = () => {
-    if (!this.targetBlock) return // do nothing if no blocks are selected
+    if (!this.targetBlock) return; // do nothing if no blocks are selected
 
     const todo = obtainedType => {
-      if (obtainedType === 0) return
-      this.player.obtain(obtainedType, 1)
-    }
+      if (obtainedType === 0) return;
+      this.player.obtain(obtainedType, 1);
+    };
 
-    this.updateBlock(0, this.targetBlock, todo)
-  }
+    this.updateBlock(0, this.targetBlock, todo);
+  };
 
   placeBlock = type => {
-    if (!this.potentialBlock) return
+    if (!this.potentialBlock) return;
 
     const todo = () => {
-      this.player.takeFromHand(1)
-    }
+      this.player.takeFromHand(1);
+    };
 
-    this.updateBlock(type, this.potentialBlock, todo)
-  }
+    this.updateBlock(type, this.potentialBlock, todo);
+  };
 
   updateBlock = (type, blockData, todo) => {
     const {
       chunk: { cx, cy, cz },
       block
-    } = blockData
+    } = blockData;
 
     const mappedBlock = {
       x: cx * size + block.x,
       y: cy * size + block.y,
       z: cz * size + block.z
-    }
+    };
 
-    const parentChunk = this.getChunkByCoords(cx, cy, cz)
+    const parentChunk = this.getChunkByCoords(cx, cy, cz);
 
-    const { x, y, z } = block
-    if (parentChunk.checkBusyBlock(x, y, z)) return
-    else parentChunk.tagBusyBlock(x, y, z)
+    const { x, y, z } = block;
+    if (parentChunk.checkBusyBlock(x, y, z)) return;
+    else parentChunk.tagBusyBlock(x, y, z);
 
     // Communicating with server
     this.apolloClient
@@ -260,26 +264,26 @@ class World {
         }
       })
       .then(() => {
-        const obtainedType = parentChunk.getBlock(x, y, z)
-        todo(obtainedType)
+        const obtainedType = parentChunk.getBlock(x, y, z);
+        todo(obtainedType);
       })
-      .catch(err => console.error(err))
-  }
+      .catch(err => console.error(err));
+  };
 
   updateChanged = ({ block }) => {
-    if (!block) return
-    const { node } = block
+    if (!block) return;
+    const { node } = block;
 
     const { coordx, coordy, coordz } = Helpers.toChunkCoords(node),
       chunkBlock = Helpers.toBlockCoords(node),
-      { type, x: mx, y: my, z: mz } = node
+      { type, x: mx, y: my, z: mz } = node;
 
-    const targetChunk = this.getChunkByCoords(coordx, coordy, coordz)
+    const targetChunk = this.getChunkByCoords(coordx, coordy, coordz);
 
-    this.registerChangedBlock(type, mx, my, mz)
+    this.registerChangedBlock(type, mx, my, mz);
 
     this.workerPool.queueJob({
-      cmd: 'UPDATE_BLOCK',
+      cmd: "UPDATE_BLOCK",
       data: targetChunk.grid.data,
       block: chunkBlock,
       type,
@@ -288,33 +292,33 @@ class World {
         stride: targetChunk.grid.stride,
         chunkName: targetChunk.name
       }
-    })
+    });
 
     // Checking for neighboring blocks.
-    const axes = [['x', 'coordx'], ['y', 'coordy'], ['z', 'coordz']]
+    const axes = [["x", "coordx"], ["y", "coordy"], ["z", "coordz"]];
     axes.forEach(([a, c]) => {
       const nc = { coordx, coordy, coordz },
-        nb = { ...chunkBlock }
-      let shouldWork = false
+        nb = { ...chunkBlock };
+      let shouldWork = false;
 
       if (chunkBlock[a] === 0) {
-        nc[c] -= 1
-        nb[a] = size
-        shouldWork = true
+        nc[c] -= 1;
+        nb[a] = size;
+        shouldWork = true;
       } else if (chunkBlock[a] === size - 1) {
-        nc[c] += 1
-        nb[a] = -1
-        shouldWork = true
+        nc[c] += 1;
+        nb[a] = -1;
+        shouldWork = true;
       }
       if (shouldWork) {
         const neighborChunk = this.getChunkByCoords(
           nc.coordx,
           nc.coordy,
           nc.coordz
-        )
+        );
 
         this.workerPool.queueJob({
-          cmd: 'UPDATE_BLOCK',
+          cmd: "UPDATE_BLOCK",
           data: neighborChunk.grid.data,
           block: nb,
           type,
@@ -323,49 +327,49 @@ class World {
             stride: neighborChunk.grid.stride,
             chunkName: neighborChunk.name
           }
-        })
+        });
       }
-    })
-  }
+    });
+  };
 
   getChunkByCoords = (cx, cy, cz) => {
-    const temp = this.chunks[Helpers.getCoordsRepresentation(cx, cy, cz)]
+    const temp = this.chunks[Helpers.getCoordsRepresentation(cx, cy, cz)];
 
-    return temp || null
-  }
+    return temp || null;
+  };
 
   registerChangedBlock = (type, x, y, z) => {
-    this.changedBlocks[Helpers.getCoordsRepresentation(x, y, z)] = type
-  }
-  setPotential = potential => (this.potentialBlock = potential)
-  setTarget = target => (this.targetBlock = target)
-  setPlayer = player => (this.player = player)
+    this.changedBlocks[Helpers.getCoordsRepresentation(x, y, z)] = type;
+  };
+  setPotential = potential => (this.potentialBlock = potential);
+  setTarget = target => (this.targetBlock = target);
+  setPlayer = player => (this.player = player);
 
   _digestBlocks = blocks => {
     // console.time('Blocks Digestion')
     return blocks
       .slice(0, -1)
-      .split(';')
+      .split(";")
       .map(og => {
-        const ele = og.split(':')
-        const id = parseInt(ele[0])
-        const coords = ele[1].split(','),
+        const ele = og.split(":");
+        const id = parseInt(ele[0]);
+        const coords = ele[1].split(","),
           position = {
             x: parseInt(coords[0]),
             y: parseInt(coords[1]),
             z: parseInt(coords[2])
-          }
+          };
         return {
           id,
           position
-        }
-      })
+        };
+      });
     // console.timeEnd('Blocks Digestion')
-  }
+  };
   _handleMeshCombining = meshGroup => {
-    this.mesh = Helpers.mergeMeshes(meshGroup)
-    this.mesh.name = this.name
-  }
+    this.mesh = Helpers.mergeMeshes(meshGroup);
+    this.mesh.name = this.name;
+  };
 }
 
-export default World
+export default World;
