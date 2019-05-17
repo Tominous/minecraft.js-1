@@ -81,8 +81,9 @@ export default {
     }
   },
   ambientLight: {
-    enabled: false,
-    color: 0xf0f0f0
+    enabled: true,
+    color: 0xf0f0f0,
+    intensity: 0.06
   },
   directionalLight: {
     enabled: true,
@@ -106,7 +107,7 @@ export default {
     left: -100
   },
   pointLight: {
-    enabled: true,
+    enabled: false,
     color: 0xffffff,
     intensity: 0.8,
     distance: 0, // default
@@ -115,7 +116,7 @@ export default {
     z: -100
   },
   hemiLight: {
-    enabled: true,
+    enabled: false,
     color: 0xeeeeff,
     groundColor: 0x777788,
     intensity: 0.75,

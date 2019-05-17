@@ -571,60 +571,60 @@ export default () => {
       }
 
       // DECORATIONS
-      if (
-        !solid &&
-        this.getBlockInfo(x, y - biome.decoration.radius.y - 1, z, true) !==
-          0 &&
-        blockId === 0
-      ) {
-        decoration: for (
-          let x1 = x - biome.decoration.radius.x;
-          x1 <= x + biome.decoration.radius.x;
-          x1++
-        ) {
-          for (let y1 = y - biome.decoration.radius.y; y1 <= y; y1++) {
-            for (
-              let z1 = z - biome.decoration.radius.z;
-              z1 <= z + biome.decoration.radius.z;
-              z1++
-            ) {
-              if (
-                this.getBlockInfo(x1, y1, z1, true) === 0 &&
-                this.getBlockInfo(x1, y1 - 1, z1, true) !== 0 &&
-                this.noise.simplex2(x1, z1) >= 0.99
-              ) {
-                let x2 = -(x1 - x);
-                let y2 = -(y1 - y);
-                let z2 = -(z1 - z);
-                let coordString = "(" + x2 + "," + y2 + "," + z2 + ")";
-                if (biome.decoration.structure[coordString]) {
-                  blockId = biome.decoration.structure[coordString];
-                  break decoration;
-                }
-              }
-            }
-          }
-        }
-      }
+      // if (
+      //   !solid &&
+      //   this.getBlockInfo(x, y - biome.decoration.radius.y - 1, z, true) !==
+      //     0 &&
+      //   blockId === 0
+      // ) {
+      //   decoration: for (
+      //     let x1 = x - biome.decoration.radius.x;
+      //     x1 <= x + biome.decoration.radius.x;
+      //     x1++
+      //   ) {
+      //     for (let y1 = y - biome.decoration.radius.y; y1 <= y; y1++) {
+      //       for (
+      //         let z1 = z - biome.decoration.radius.z;
+      //         z1 <= z + biome.decoration.radius.z;
+      //         z1++
+      //       ) {
+      //         if (
+      //           this.getBlockInfo(x1, y1, z1, true) === 0 &&
+      //           this.getBlockInfo(x1, y1 - 1, z1, true) !== 0 &&
+      //           this.noise.simplex2(x1, z1) >= 0.99
+      //         ) {
+      //           let x2 = -(x1 - x);
+      //           let y2 = -(y1 - y);
+      //           let z2 = -(z1 - z);
+      //           let coordString = "(" + x2 + "," + y2 + "," + z2 + ")";
+      //           if (biome.decoration.structure[coordString]) {
+      //             blockId = biome.decoration.structure[coordString];
+      //             break decoration;
+      //           }
+      //         }
+      //       }
+      //     }
+      //   }
+      // }
 
       // ORES
-      if (!solid && blockId === 1) {
-        if (this.coal.perlin3(x / 5, y / 5, z / 5) >= 0.7) {
-          blockId = 16;
-        }
-        if (y <= height / 2 && this.iron.perlin3(x / 5, y / 5, z / 5) >= 0.8) {
-          blockId = 15;
-        }
-        if (y <= height / 4 && this.gold.perlin3(x / 5, y / 5, z / 5) >= 0.9) {
-          blockId = 14;
-        }
-        if (
-          y <= height / 8 &&
-          this.diamond.perlin3(x / 5, y / 5, z / 5) >= 0.95
-        ) {
-          blockId = 56;
-        }
-      }
+      // if (!solid && blockId === 1) {
+      //   if (this.coal.perlin3(x / 5, y / 5, z / 5) >= 0.7) {
+      //     blockId = 16;
+      //   }
+      //   if (y <= height / 2 && this.iron.perlin3(x / 5, y / 5, z / 5) >= 0.8) {
+      //     blockId = 15;
+      //   }
+      //   if (y <= height / 4 && this.gold.perlin3(x / 5, y / 5, z / 5) >= 0.9) {
+      //     blockId = 14;
+      //   }
+      //   if (
+      //     y <= height / 8 &&
+      //     this.diamond.perlin3(x / 5, y / 5, z / 5) >= 0.95
+      //   ) {
+      //     blockId = 56;
+      //   }
+      // }
 
       return blockId;
     };
@@ -733,7 +733,7 @@ export default () => {
           configs: {
             noiseConstant,
             biomeConstant,
-            caves,
+            // caves,
             size,
             height,
             stride,
@@ -756,11 +756,11 @@ export default () => {
           blocks[i * stride[0] + j * stride[1] + k * stride[2]];
 
         // CAVES
-        const wormLength = caves.wormLength;
-        const wormRadius = caves.wormRadius;
-        const wormNoiseConstant = caves.wormNoiseConstant;
+        // const wormLength = caves.wormLength;
+        // const wormRadius = caves.wormRadius;
+        // const wormNoiseConstant = caves.wormNoiseConstant;
 
-        const caveMaxLength = wormLength * wormRadius;
+        // const caveMaxLength = wormLength * wormRadius;
 
         const caveMap = new Array(size + 2);
 
@@ -774,87 +774,87 @@ export default () => {
           }
         }
 
-        for (let x = -caveMaxLength - 1; x < size + caveMaxLength + 1; x++) {
-          for (let z = -caveMaxLength - 1; z < size + caveMaxLength + 1; z++) {
-            for (
-              let y = -caveMaxLength - 1;
-              y < size + caveMaxLength + 1;
-              y++
-            ) {
-              if (
-                (x + coordx * size) % 25 === 0 &&
-                (y + coordy * size) % 25 === 0 &&
-                (z + coordz * size) % 25 === 0
-              ) {
-                let xWorm = x + coordx * size;
-                let yWorm = y + coordy * size;
-                let zWorm = z + coordz * size;
-                let x2 = xWorm / wormNoiseConstant;
-                let y2 = yWorm / wormNoiseConstant;
-                let z2 = zWorm / wormNoiseConstant;
-                for (let i = 0; i < wormLength; i++) {
-                  if (i > 0) {
-                    let angle1 =
-                      generator.noise.perlin3(
-                        x2 + i / wormNoiseConstant,
-                        y2,
-                        z2
-                      ) *
-                      2 *
-                      Math.PI;
-                    let angle2 =
-                      generator.noise.perlin3(
-                        x2,
-                        y2,
-                        z2 + i / wormNoiseConstant
-                      ) *
-                      2 *
-                      Math.PI;
-                    xWorm += wormRadius * Math.cos(angle1 + angle2);
-                    yWorm += wormRadius * Math.sin(angle1);
-                    zWorm += wormRadius * Math.sin(angle2);
-                  }
-                  for (
-                    let x1 = xWorm - wormRadius;
-                    x1 < xWorm + wormRadius;
-                    x1++
-                  ) {
-                    for (
-                      let y1 = yWorm - wormRadius;
-                      y1 < yWorm + wormRadius;
-                      y1++
-                    ) {
-                      for (
-                        let z1 = zWorm - wormRadius;
-                        z1 < zWorm + wormRadius;
-                        z1++
-                      ) {
-                        let x3 = Math.round(x1);
-                        let y3 = Math.round(y1);
-                        let z3 = Math.round(z1);
-                        if (
-                          generator.dist(x3, y3, z3, xWorm, yWorm, zWorm) <=
-                          wormRadius
-                        ) {
-                          if (
-                            x3 >= -1 &&
-                            x3 < size + 1 &&
-                            y3 >= -1 &&
-                            y3 < size + 1 &&
-                            z3 >= -1 &&
-                            z3 < size + 1
-                          ) {
-                            caveMap[x3 + 1][z3 + 1][y3 + 1] = true;
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+        // for (let x = -caveMaxLength - 1; x < size + caveMaxLength + 1; x++) {
+        //   for (let z = -caveMaxLength - 1; z < size + caveMaxLength + 1; z++) {
+        //     for (
+        //       let y = -caveMaxLength - 1;
+        //       y < size + caveMaxLength + 1;
+        //       y++
+        //     ) {
+        //       if (
+        //         (x + coordx * size) % 25 === 0 &&
+        //         (y + coordy * size) % 25 === 0 &&
+        //         (z + coordz * size) % 25 === 0
+        //       ) {
+        //         let xWorm = x + coordx * size;
+        //         let yWorm = y + coordy * size;
+        //         let zWorm = z + coordz * size;
+        //         let x2 = xWorm / wormNoiseConstant;
+        //         let y2 = yWorm / wormNoiseConstant;
+        //         let z2 = zWorm / wormNoiseConstant;
+        //         for (let i = 0; i < wormLength; i++) {
+        //           if (i > 0) {
+        //             let angle1 =
+        //               generator.noise.perlin3(
+        //                 x2 + i / wormNoiseConstant,
+        //                 y2,
+        //                 z2
+        //               ) *
+        //               2 *
+        //               Math.PI;
+        //             let angle2 =
+        //               generator.noise.perlin3(
+        //                 x2,
+        //                 y2,
+        //                 z2 + i / wormNoiseConstant
+        //               ) *
+        //               2 *
+        //               Math.PI;
+        //             xWorm += wormRadius * Math.cos(angle1 + angle2);
+        //             yWorm += wormRadius * Math.sin(angle1);
+        //             zWorm += wormRadius * Math.sin(angle2);
+        //           }
+        //           for (
+        //             let x1 = xWorm - wormRadius;
+        //             x1 < xWorm + wormRadius;
+        //             x1++
+        //           ) {
+        //             for (
+        //               let y1 = yWorm - wormRadius;
+        //               y1 < yWorm + wormRadius;
+        //               y1++
+        //             ) {
+        //               for (
+        //                 let z1 = zWorm - wormRadius;
+        //                 z1 < zWorm + wormRadius;
+        //                 z1++
+        //               ) {
+        //                 let x3 = Math.round(x1);
+        //                 let y3 = Math.round(y1);
+        //                 let z3 = Math.round(z1);
+        //                 if (
+        //                   generator.dist(x3, y3, z3, xWorm, yWorm, zWorm) <=
+        //                   wormRadius
+        //                 ) {
+        //                   if (
+        //                     x3 >= -1 &&
+        //                     x3 < size + 1 &&
+        //                     y3 >= -1 &&
+        //                     y3 < size + 1 &&
+        //                     z3 >= -1 &&
+        //                     z3 < size + 1
+        //                   ) {
+        //                     caveMap[x3 + 1][z3 + 1][y3 + 1] = true;
+        //                   }
+        //                 }
+        //               }
+        //             }
+        //           }
+        //         }
+        //       }
+        //     }
+        //   }
+        // }
 
         for (let x = 0; x < size + 2; x++)
           for (let z = 0; z < size + 2; z++)
