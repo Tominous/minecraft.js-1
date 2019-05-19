@@ -18,7 +18,6 @@
 // code: https://github.com/selfshadow/ltc_code/
 
 export default THREE => {
-  console.log("INITIALIZING LIB");
   // source: https://github.com/selfshadow/ltc_code/tree/master/fit/results/ltc.js
 
   // prettier-ignore

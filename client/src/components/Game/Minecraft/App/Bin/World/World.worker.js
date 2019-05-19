@@ -385,7 +385,14 @@ export default () => {
   function getCoordsRepresentation(x, y, z, semi = false) {
     return `${x}:${y}:${z}${semi ? ";" : ""}`;
   }
-  function Generator(seed, noiseConstant, biomeConstant, height) {
+  function Generator(
+    seed,
+    noiseConstant,
+    biomeConstant,
+    size,
+    height,
+    changedBlocks
+  ) {
     this.noise = new Noise(parseInt(seed));
 
     // BIOMES
@@ -629,6 +636,99 @@ export default () => {
       return blockId;
     };
 
+    this.getBlockLighting = (x, y, z) => {
+      let surroundings = [
+        { x: 0, y: 1, z: 0 },
+        { x: 1, y: 0, z: 0 },
+        { x: 0, y: 0, z: 1 },
+        { x: -1, y: 0, z: 0 },
+        { x: 0, y: 0, z: -1 },
+        { x: 0, y: -1, z: 0 }
+      ];
+
+      let lights = [];
+
+      for (let i = 0; i < surroundings.length; i++) {
+        const block = {
+          x: x + surroundings[i].x,
+          y: y + surroundings[i].y,
+          z: z + surroundings[i].z,
+          lightLevel: 15
+        };
+        const cb =
+            changedBlocks[getCoordsRepresentation(block.x, block.y, block.z)],
+          value =
+            typeof cb === "number"
+              ? cb
+              : this.getBlockInfo(block.x, block.y, block.z);
+        if (value === 0) {
+          // GREEDY SEARCH ON EACH SURROUNDING
+          let queue = [block];
+          while (queue.length > 0) {
+            let qIndex = 0;
+            for (let n = 0; n < queue.length; n++) {
+              const node = queue[n];
+              if (
+                Math.abs(height - queue[qIndex].y) > Math.abs(height - node.y)
+              ) {
+                qIndex = n;
+              }
+            }
+            let q = queue.splice(qIndex, 1)[0];
+            if (q.y === height) {
+              lights.push({
+                intensity: q.lightLevel / 15,
+                coords: block,
+                lookAt: { x: x, y: y, z: z }
+              });
+              break;
+            }
+            for (let n = 0; n < surroundings.length; n++) {
+              const newNodeCoords = {
+                x: q.x + surroundings[n].x,
+                y: q.y + surroundings[n].y,
+                z: q.z + surroundings[n].z
+              };
+              const cb2 =
+                  changedBlocks[
+                    getCoordsRepresentation(
+                      newNodeCoords.x,
+                      newNodeCoords.y,
+                      newNodeCoords.z
+                    )
+                  ],
+                value2 =
+                  typeof cb2 === "number"
+                    ? cb2
+                    : this.getBlockInfo(
+                        newNodeCoords.x,
+                        newNodeCoords.y,
+                        newNodeCoords.z
+                      );
+              if (value2 === 0) {
+                let lightLevel =
+                  surroundings[n].x === 0 &&
+                  surroundings[n].z === 0 &&
+                  surroundings[n].y >= 0
+                    ? q.lightLevel
+                    : q.lightLevel - 1;
+                if (lightLevel >= 0) {
+                  const newNode = {
+                    x: newNodeCoords.x,
+                    y: newNodeCoords.y,
+                    z: newNodeCoords.z,
+                    lightLevel: lightLevel
+                  };
+                  queue.push(newNode);
+                }
+              }
+            }
+          }
+        }
+      }
+      return lights;
+    };
+
     this.linearInterpolate3d = (
       xm_ym_zm,
       xp_ym_zm,
@@ -742,13 +842,9 @@ export default () => {
           coords: { coordx, coordy, coordz }
         } = e.data;
 
-        const generator = new Generator(
-          seed,
-          noiseConstant,
-          biomeConstant,
-          height
-        );
         const blocks = new Uint16Array((size + 2) * (size + 2) * (size + 2));
+
+        let lights = [];
 
         const set = (i, j, k, v) =>
           (blocks[i * stride[0] + j * stride[1] + k * stride[2]] = v);
@@ -756,23 +852,23 @@ export default () => {
           blocks[i * stride[0] + j * stride[1] + k * stride[2]];
 
         // CAVES
-        // const wormLength = caves.wormLength;
-        // const wormRadius = caves.wormRadius;
-        // const wormNoiseConstant = caves.wormNoiseConstant;
+        // const caveLength = caves.caveLength;
+        // const caveRadius = caves.caveRadius;
+        // const caveNoiseConstant = caves.caveNoiseConstant;
 
-        // const caveMaxLength = wormLength * wormRadius;
+        // const caveMaxLength = caveLength * caveRadius;
 
-        const caveMap = new Array(size + 2);
+        // const caveMap = new Array(size + 2);
 
-        for (let x = 0; x < size + 2; x++) {
-          caveMap[x] = new Array(size + 2);
-          for (let z = 0; z < size + 2; z++) {
-            caveMap[x][z] = new Array(size + 2);
-            for (let y = 0; y < size + 2; y++) {
-              caveMap[x][z][y] = false;
-            }
-          }
-        }
+        // for (let x = 0; x < size + 2; x++) {
+        //   caveMap[x] = new Array(size + 2);
+        //   for (let z = 0; z < size + 2; z++) {
+        //     caveMap[x][z] = new Array(size + 2);
+        //     for (let y = 0; y < size + 2; y++) {
+        //       caveMap[x][z][y] = false;
+        //     }
+        //   }
+        // }
 
         // for (let x = -caveMaxLength - 1; x < size + caveMaxLength + 1; x++) {
         //   for (let z = -caveMaxLength - 1; z < size + caveMaxLength + 1; z++) {
@@ -786,17 +882,17 @@ export default () => {
         //         (y + coordy * size) % 25 === 0 &&
         //         (z + coordz * size) % 25 === 0
         //       ) {
-        //         let xWorm = x + coordx * size;
-        //         let yWorm = y + coordy * size;
-        //         let zWorm = z + coordz * size;
-        //         let x2 = xWorm / wormNoiseConstant;
-        //         let y2 = yWorm / wormNoiseConstant;
-        //         let z2 = zWorm / wormNoiseConstant;
-        //         for (let i = 0; i < wormLength; i++) {
+        //         let xCave = x + coordx * size;
+        //         let yCave = y + coordy * size;
+        //         let zCave = z + coordz * size;
+        //         let x2 = xCave / caveNoiseConstant;
+        //         let y2 = yCave / caveNoiseConstant;
+        //         let z2 = zCave / caveNoiseConstant;
+        //         for (let i = 0; i < caveLength; i++) {
         //           if (i > 0) {
         //             let angle1 =
         //               generator.noise.perlin3(
-        //                 x2 + i / wormNoiseConstant,
+        //                 x2 + i / caveNoiseConstant,
         //                 y2,
         //                 z2
         //               ) *
@@ -806,35 +902,35 @@ export default () => {
         //               generator.noise.perlin3(
         //                 x2,
         //                 y2,
-        //                 z2 + i / wormNoiseConstant
+        //                 z2 + i / caveNoiseConstant
         //               ) *
         //               2 *
         //               Math.PI;
-        //             xWorm += wormRadius * Math.cos(angle1 + angle2);
-        //             yWorm += wormRadius * Math.sin(angle1);
-        //             zWorm += wormRadius * Math.sin(angle2);
+        //             xCave += caveRadius * Math.cos(angle1 + angle2);
+        //             yCave += caveRadius * Math.sin(angle1);
+        //             zCave += caveRadius * Math.sin(angle2);
         //           }
         //           for (
-        //             let x1 = xWorm - wormRadius;
-        //             x1 < xWorm + wormRadius;
+        //             let x1 = xCave - caveRadius;
+        //             x1 < xCave + caveRadius;
         //             x1++
         //           ) {
         //             for (
-        //               let y1 = yWorm - wormRadius;
-        //               y1 < yWorm + wormRadius;
+        //               let y1 = yCave - caveRadius;
+        //               y1 < yCave + caveRadius;
         //               y1++
         //             ) {
         //               for (
-        //                 let z1 = zWorm - wormRadius;
-        //                 z1 < zWorm + wormRadius;
+        //                 let z1 = zCave - caveRadius;
+        //                 z1 < zCave + caveRadius;
         //                 z1++
         //               ) {
         //                 let x3 = Math.round(x1);
         //                 let y3 = Math.round(y1);
         //                 let z3 = Math.round(z1);
         //                 if (
-        //                   generator.dist(x3, y3, z3, xWorm, yWorm, zWorm) <=
-        //                   wormRadius
+        //                   generator.dist(x3, y3, z3, xCave, yCave, zCave) <=
+        //                   caveRadius
         //                 ) {
         //                   if (
         //                     x3 >= -1 &&
@@ -856,6 +952,15 @@ export default () => {
         //   }
         // }
 
+        const generator = new Generator(
+          seed,
+          noiseConstant,
+          biomeConstant,
+          size,
+          height,
+          changedBlocks
+        );
+
         for (let x = 0; x < size + 2; x++)
           for (let z = 0; z < size + 2; z++)
             for (let y = 0; y < size + 2; y++) {
@@ -868,13 +973,21 @@ export default () => {
 
               const cb = changedBlocks[getCoordsRepresentation(...pos)],
                 value =
-                  typeof cb === "number"
-                    ? cb
-                    : caveMap[x][z][y]
-                    ? 0
-                    : generator.getBlockInfo(...pos);
+                  typeof cb === "number" ? cb : generator.getBlockInfo(...pos);
 
               set(x, z, y, value);
+
+              if (
+                x > 0 &&
+                x < size + 1 &&
+                y > 0 &&
+                y < size + 1 &&
+                z > 0 &&
+                z < size + 1 &&
+                value !== 0
+              ) {
+                lights = lights.concat(generator.getBlockLighting(...pos));
+              }
             }
 
         /** MESHING RIGHT BELOW */
@@ -883,12 +996,12 @@ export default () => {
         if (blocks.find(ele => ele)) {
           const quads = calcQuads(get, dims);
 
-          postMessage({ cmd, blocks, quads, chunkName });
-        } else postMessage({ cmd, blocks, quads: [], chunkName });
+          postMessage({ cmd, blocks, quads, chunkName, lights });
+        } else postMessage({ cmd, blocks, quads: [], chunkName, lights });
 
         const quads = calcQuads(get, dims);
 
-        postMessage({ cmd, blocks, quads, chunkName });
+        postMessage({ cmd, blocks, quads, chunkName, lights });
         break;
       }
       case "UPDATE_BLOCK": {

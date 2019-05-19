@@ -83,24 +83,16 @@ class MainScene extends Component {
     this.camera = new Camera(this.renderer.threeRenderer);
     this.light = new Light(this.scene);
     this.light.place("ambient");
-
-    this.rectLight = new THREE.RectAreaLight(0xffffff, 0.8, 100, 100);
-    this.rectLight.position.set(-30 * 32, 40 * 32, -25 * 32);
-    this.rectLight.lookAt(-30 * 32, 0, -25 * 32);
-    this.scene.add(this.rectLight);
-
-    this.rectLightMesh = new THREE.Mesh(
-      new THREE.PlaneBufferGeometry(),
-      new THREE.MeshBasicMaterial({ side: THREE.BackSide })
-    );
-    this.rectLightMesh.scale.x = this.rectLight.width;
-    this.rectLightMesh.scale.y = this.rectLight.height;
-    this.rectLight.add(this.rectLightMesh);
-    this.rectLightMeshBack = new THREE.Mesh(
-      new THREE.PlaneBufferGeometry(),
-      new THREE.MeshBasicMaterial({ color: 0x080808 })
-    );
-    this.rectLightMesh.add(this.rectLightMeshBack);
+    // this.light.placeSurfaceLight(
+    //   1,
+    //   { x: -30, y: 40, z: -25 },
+    //   { x: -30, y: 39, z: -25 }
+    // );
+    // this.light.placeSurfaceLight(
+    //   1,
+    //   { x: -30, y: 40, z: -25 },
+    //   { x: -30, y: 40, z: -26 }
+    // );
 
     // Stats creation
     this.stats = new Stats();

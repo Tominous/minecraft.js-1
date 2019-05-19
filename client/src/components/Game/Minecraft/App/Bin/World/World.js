@@ -7,6 +7,7 @@ import worker from "./World.worker";
 import { UPDATE_BLOCK_MUTATION } from "../../../../../../lib/graphql";
 import WorkerPool from "../Workers/WorkerPool";
 import TaskQueue from "../Workers/TaskQueue";
+import Light from "../Light/Light";
 
 const size = Config.chunk.size,
   height = Config.chunk.height,
@@ -28,6 +29,7 @@ class World {
 
     // Connections to outer space
     this.scene = scene;
+    this.light = new Light(this.scene);
 
     // World Generating Helpers
     this.chunks = {};
@@ -58,10 +60,20 @@ class World {
       const { cmd } = data;
       switch (cmd) {
         case "GET_CHUNK": {
-          const { quads, blocks, chunkName } = data;
+          const { quads, blocks, chunkName, lights } = data;
           const temp = this.chunks[chunkName];
 
           temp.setGrid(blocks);
+          this.workerTaskHandler.addTask(this, () => {
+            for (let i = 0; i < lights.length; i++) {
+              const light = lights[i];
+              this.light.placeSurfaceLight(
+                light.intensity,
+                light.coords,
+                light.lookAt
+              );
+            }
+          });
           this.workerTaskHandler.addTasks(temp, [
             [temp.meshQuads, quads],
             [temp.combineMesh],

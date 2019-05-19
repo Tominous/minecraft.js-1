@@ -83,7 +83,7 @@ export default {
   ambientLight: {
     enabled: true,
     color: 0xf0f0f0,
-    intensity: 0.06
+    intensity: 0.1
   },
   directionalLight: {
     enabled: true,
@@ -136,9 +136,9 @@ export default {
     biomeConstant: 1000,
     maxWorkerCount: 4,
     caves: {
-      wormLength: 10,
-      wormRadius: 5,
-      wormNoiseConstant: 5
+      caveLength: 10,
+      caveRadius: 5,
+      caveNoiseConstant: 5
     }
   }
 };

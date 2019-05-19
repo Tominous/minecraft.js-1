@@ -97,4 +97,49 @@ export default class Light {
         break;
     }
   }
+
+  placeSurfaceLight(intensity, coords, lookAt) {
+    let rectLight = new THREE.RectAreaLight(
+      0xffffff,
+      intensity,
+      Config.block.dimension,
+      Config.block.dimension
+    );
+    let offset = {
+      x: (lookAt.x - coords.x) * 0.49,
+      y: (lookAt.y - coords.y) * 0.49,
+      z: (lookAt.z - coords.z) * 0.49
+    };
+    rectLight.position.set(
+      (coords.x + offset.x) * Config.block.dimension,
+      (coords.y + offset.y) * Config.block.dimension,
+      (coords.z + offset.z) * Config.block.dimension
+    );
+    rectLight.lookAt(
+      lookAt.x * Config.block.dimension,
+      lookAt.y * Config.block.dimension,
+      lookAt.z * Config.block.dimension
+    );
+    this.scene.add(rectLight);
+
+    let rectLightMesh = new THREE.Mesh(
+      new THREE.PlaneBufferGeometry(),
+      new THREE.MeshBasicMaterial({
+        side: THREE.BackSide,
+        opacity: 0,
+        transparent: true
+      })
+    );
+    rectLightMesh.scale.x = rectLight.width;
+    rectLightMesh.scale.y = rectLight.height;
+    rectLight.add(rectLightMesh);
+    let rectLightMeshBack = new THREE.Mesh(
+      new THREE.PlaneBufferGeometry(),
+      new THREE.MeshBasicMaterial({
+        opacity: 0,
+        transparent: true
+      })
+    );
+    rectLightMesh.add(rectLightMeshBack);
+  }
 }
