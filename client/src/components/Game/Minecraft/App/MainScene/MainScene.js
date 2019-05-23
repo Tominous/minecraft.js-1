@@ -83,16 +83,6 @@ class MainScene extends Component {
     this.camera = new Camera(this.renderer.threeRenderer);
     this.light = new Light(this.scene);
     this.light.place("ambient");
-    // this.light.placeSurfaceLight(
-    //   1,
-    //   { x: -30, y: 40, z: -25 },
-    //   { x: -30, y: 39, z: -25 }
-    // );
-    // this.light.placeSurfaceLight(
-    //   1,
-    //   { x: -30, y: 40, z: -25 },
-    //   { x: -30, y: 40, z: -26 }
-    // );
 
     // Stats creation
     this.stats = new Stats();

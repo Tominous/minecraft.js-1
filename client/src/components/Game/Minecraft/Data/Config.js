@@ -56,7 +56,7 @@ export default {
     posX: 0,
     posY: 30,
     posZ: 0,
-    horzD: 3,
+    horzD: 1,
     vertD: 1,
     reachDst: 7
   },
@@ -83,7 +83,7 @@ export default {
   ambientLight: {
     enabled: true,
     color: 0xf0f0f0,
-    intensity: 0.1
+    intensity: 1
   },
   directionalLight: {
     enabled: true,

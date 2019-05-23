@@ -60,20 +60,10 @@ class World {
       const { cmd } = data;
       switch (cmd) {
         case "GET_CHUNK": {
-          const { quads, blocks, chunkName, lights } = data;
+          const { quads, blocks, chunkName } = data;
           const temp = this.chunks[chunkName];
 
           temp.setGrid(blocks);
-          this.workerTaskHandler.addTask(this, () => {
-            for (let i = 0; i < lights.length; i++) {
-              const light = lights[i];
-              this.light.placeSurfaceLight(
-                light.intensity,
-                light.coords,
-                light.lookAt
-              );
-            }
-          });
           this.workerTaskHandler.addTasks(temp, [
             [temp.meshQuads, quads],
             [temp.combineMesh],

@@ -646,7 +646,7 @@ export default () => {
         { x: 0, y: -1, z: 0 }
       ];
 
-      let lights = [];
+      let lights = new Array(surroundings.length);
 
       for (let i = 0; i < surroundings.length; i++) {
         const block = {
@@ -662,7 +662,9 @@ export default () => {
               ? cb
               : this.getBlockInfo(block.x, block.y, block.z);
         if (value === 0) {
-          // GREEDY SEARCH ON EACH SURROUNDING
+          let pastNodeCoords = [
+            getCoordsRepresentation(block.x, block.y, block.z)
+          ];
           let queue = [block];
           while (queue.length > 0) {
             let qIndex = 0;
@@ -676,19 +678,26 @@ export default () => {
             }
             let q = queue.splice(qIndex, 1)[0];
             if (q.y === height) {
-              lights.push({
-                intensity: q.lightLevel / 15,
-                coords: block,
-                lookAt: { x: x, y: y, z: z }
-              });
+              lights[i] = q.lightLevel;
               break;
             }
-            for (let n = 0; n < surroundings.length; n++) {
+            for (let n = 0; n < surroundings.length - 1; n++) {
               const newNodeCoords = {
                 x: q.x + surroundings[n].x,
                 y: q.y + surroundings[n].y,
                 z: q.z + surroundings[n].z
               };
+              if (
+                pastNodeCoords.indexOf(
+                  getCoordsRepresentation(
+                    newNodeCoords.x,
+                    newNodeCoords.y,
+                    newNodeCoords.z
+                  )
+                ) !== -1
+              ) {
+                continue;
+              }
               const cb2 =
                   changedBlocks[
                     getCoordsRepresentation(
@@ -705,23 +714,30 @@ export default () => {
                         newNodeCoords.y,
                         newNodeCoords.z
                       );
-              if (value2 === 0) {
-                let lightLevel =
-                  surroundings[n].x === 0 &&
-                  surroundings[n].z === 0 &&
-                  surroundings[n].y >= 0
-                    ? q.lightLevel
-                    : q.lightLevel - 1;
-                if (lightLevel >= 0) {
-                  const newNode = {
-                    x: newNodeCoords.x,
-                    y: newNodeCoords.y,
-                    z: newNodeCoords.z,
-                    lightLevel: lightLevel
-                  };
-                  queue.push(newNode);
-                }
+              if (value2 !== 0) {
+                continue;
               }
+              let lightLevel =
+                surroundings[n].x === 0 && surroundings[n].z === 0
+                  ? q.lightLevel
+                  : q.lightLevel - 1;
+              if (lightLevel <= 0) {
+                continue;
+              }
+              const newNode = {
+                x: newNodeCoords.x,
+                y: newNodeCoords.y,
+                z: newNodeCoords.z,
+                lightLevel: lightLevel
+              };
+              queue.push(newNode);
+              pastNodeCoords.push(
+                getCoordsRepresentation(
+                  newNodeCoords.x,
+                  newNodeCoords.y,
+                  newNodeCoords.z
+                )
+              );
             }
           }
         }
@@ -781,7 +797,7 @@ export default () => {
     this.dist = (x1, y1, z1, x2, y2, z2) =>
       Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2);
   }
-  function calcQuads(get, dims) {
+  function calcQuads(get, getLighting, dims) {
     const planes = [],
       materials = { top: "top", side: "side", bottom: "bottom" };
 
@@ -795,21 +811,69 @@ export default () => {
 
           // TOP
           if (get(x, z, y + 1) === 0)
-            planes.push([[x, y + 0.5, z], "py", type, materials.top]);
+            planes.push([
+              [x, y + 0.5, z],
+              "py",
+              type,
+              materials.top,
+              getLighting(x - 1, z - 1, y - 1, 0)
+                ? getLighting(x - 1, z - 1, y - 1, 0)
+                : 0
+            ]);
 
           // SIDES
           if (get(x + 1, z, y) === 0)
-            planes.push([[x + 0.5, y, z], "px", type, materials.side]);
+            planes.push([
+              [x + 0.5, y, z],
+              "px",
+              type,
+              materials.side,
+              getLighting(x - 1, z - 1, y - 1, 1)
+                ? getLighting(x - 1, z - 1, y - 1, 1)
+                : 0
+            ]);
           if (get(x, z + 1, y) === 0)
-            planes.push([[x, y, z + 0.5], "pz", type, materials.side]);
+            planes.push([
+              [x, y, z + 0.5],
+              "pz",
+              type,
+              materials.side,
+              getLighting(x - 1, z - 1, y - 1, 2)
+                ? getLighting(x - 1, z - 1, y - 1, 2)
+                : 0
+            ]);
           if (get(x - 1, z, y) === 0)
-            planes.push([[x - 0.5, y, z], "nx", type, materials.side]);
+            planes.push([
+              [x - 0.5, y, z],
+              "nx",
+              type,
+              materials.side,
+              getLighting(x - 1, z - 1, y - 1, 3)
+                ? getLighting(x - 1, z - 1, y - 1, 3)
+                : 0
+            ]);
           if (get(x, z - 1, y) === 0)
-            planes.push([[x, y, z - 0.5], "nz", type, materials.side]);
+            planes.push([
+              [x, y, z - 0.5],
+              "nz",
+              type,
+              materials.side,
+              getLighting(x - 1, z - 1, y - 1, 4)
+                ? getLighting(x - 1, z - 1, y - 1, 4)
+                : 0
+            ]);
 
           // BOTTOM
           if (get(x, z, y - 1) === 0)
-            planes.push([[x, y - 0.5, z], "ny", type, materials.bottom]);
+            planes.push([
+              [x, y - 0.5, z],
+              "ny",
+              type,
+              materials.bottom,
+              getLighting(x - 1, z - 1, y - 1, 5)
+                ? getLighting(x - 1, z - 1, y - 1, 5)
+                : 0
+            ]);
         }
       }
     }
@@ -844,12 +908,17 @@ export default () => {
 
         const blocks = new Uint16Array((size + 2) * (size + 2) * (size + 2));
 
-        let lights = [];
-
         const set = (i, j, k, v) =>
           (blocks[i * stride[0] + j * stride[1] + k * stride[2]] = v);
         const get = (i, j, k) =>
           blocks[i * stride[0] + j * stride[1] + k * stride[2]];
+
+        const lighting = new Uint16Array(size * size * size * 6);
+
+        const setLighting = (i, j, k, l, v) =>
+          (lighting[i * 16 * 16 * 6 + j * 16 * 6 + k * 6 + l] = v);
+        const getLighting = (i, j, k, l) =>
+          lighting[i * 16 * 16 * 6 + j * 16 * 6 + k * 6 + l];
 
         // CAVES
         // const caveLength = caves.caveLength;
@@ -974,9 +1043,6 @@ export default () => {
               const cb = changedBlocks[getCoordsRepresentation(...pos)],
                 value =
                   typeof cb === "number" ? cb : generator.getBlockInfo(...pos);
-
-              set(x, z, y, value);
-
               if (
                 x > 0 &&
                 x < size + 1 &&
@@ -984,24 +1050,29 @@ export default () => {
                 y < size + 1 &&
                 z > 0 &&
                 z < size + 1 &&
-                value !== 0
+                value.id !== 0
               ) {
-                lights = lights.concat(generator.getBlockLighting(...pos));
+                const lighting = generator.getBlockLighting(...pos);
+                for (let l = 0; l < lighting.length; l++) {
+                  setLighting(x - 1, z - 1, y - 1, l, lighting[l]);
+                }
               }
+
+              set(x, z, y, value);
             }
 
         /** MESHING RIGHT BELOW */
         const dims = [size + 2, size + 2, size + 2];
 
         if (blocks.find(ele => ele)) {
-          const quads = calcQuads(get, dims);
+          const quads = calcQuads(get, getLighting, dims);
 
-          postMessage({ cmd, blocks, quads, chunkName, lights });
-        } else postMessage({ cmd, blocks, quads: [], chunkName, lights });
+          postMessage({ cmd, blocks, quads, chunkName });
+        } else postMessage({ cmd, blocks, quads: [], chunkName });
 
-        const quads = calcQuads(get, dims);
+        const quads = calcQuads(get, getLighting, dims);
 
-        postMessage({ cmd, blocks, quads, chunkName, lights });
+        postMessage({ cmd, blocks, quads, chunkName });
         break;
       }
       case "UPDATE_BLOCK": {

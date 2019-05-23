@@ -109,5 +109,8 @@ export default {
         bottom: require("../../../../../assets/blocks/glowstone.png")
       }
     }
+  },
+  light: {
+    lightLevels: 16
   }
 };

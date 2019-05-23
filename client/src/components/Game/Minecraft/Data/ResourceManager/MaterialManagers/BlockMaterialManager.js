@@ -18,19 +18,27 @@ class BlockMaterialManager {
       const sources = Resources.textures.blocks[key];
 
       for (let keyword in sources) {
-        const texture = this.loader.load(sources[keyword]);
-        texture.wrapS = THREE.RepeatWrapping;
-        texture.wrapT = THREE.RepeatWrapping;
-        texture.magFilter = THREE.NearestFilter;
-        texture.minFilter = THREE.NearestMipMapLinearFilter;
+        this.materials[key][keyword] = new Array(Resources.light.lightLevels);
+        for (
+          let lightLevel = 0;
+          lightLevel < Resources.light.lightLevels;
+          lightLevel++
+        ) {
+          const texture = this.loader.load(sources[keyword]);
+          texture.wrapS = THREE.RepeatWrapping;
+          texture.wrapT = THREE.RepeatWrapping;
+          texture.magFilter = THREE.NearestFilter;
+          texture.minFilter = THREE.NearestMipMapLinearFilter;
 
-        var material = new THREE.MeshStandardMaterial({
-          map: texture,
-          side: THREE.DoubleSide
-        });
-
+          var material = new THREE.MeshStandardMaterial({
+            map: texture,
+            side: THREE.DoubleSide,
+            aoMap: new THREE.DataTexture([1, 0, 0], 1, 1, THREE.RGBAFormat),
+            aoMapIntensity: 1 - lightLevel / (Resources.light.lightLevels - 1)
+          });
+          this.materials[key][keyword][lightLevel] = material;
+        }
         this.images[key][keyword] = sources[keyword];
-        this.materials[key][keyword] = material;
       }
     }
   };
