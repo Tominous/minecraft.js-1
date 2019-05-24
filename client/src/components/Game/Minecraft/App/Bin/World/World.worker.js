@@ -431,7 +431,7 @@ export default () => {
               "(0,2,0)": 81
             }
           };
-          biome.noiseFallOffType = "SQRT";
+          biome.noiseFallOffType = "LNR";
           break;
         case "SNOW":
           biome.topBlockId = 80;
@@ -479,7 +479,7 @@ export default () => {
             "(1,5,0)": 18
             }
           };
-          biome.noiseFallOffType = "SQRT";
+          biome.noiseFallOffType = "LNR";
           break;
         case "FOREST":
           biome.topBlockId = 2;
@@ -556,23 +556,32 @@ export default () => {
       }
 
       // TOP / BOTTOM BLOCKS
-      if (
-        !solid &&
-        blockId === 1 &&
-        (y >= height - 3 ||
-          this.getBlockInfo(x, y + 1, z, true) === 0 ||
-          this.getBlockInfo(x, y + 4, z, true) === 0 ||
-          this.getBlockInfo(x, y + 3, z, true) === 0 ||
-          this.getBlockInfo(x, y + 2, z, true) === 0)
-      ) {
-        if (y === height || this.getBlockInfo(x, y + 1, z, true) === 0) {
+      // if (
+      //   !solid &&
+      //   blockId === 1 &&
+      //   (y >= height - 3 ||
+      //     this.getBlockInfo(x, y + 1, z, true) === 0 ||
+      //     this.getBlockInfo(x, y + 4, z, true) === 0 ||
+      //     this.getBlockInfo(x, y + 3, z, true) === 0 ||
+      //     this.getBlockInfo(x, y + 2, z, true) === 0)
+      // ) {
+      //   if (y === height || this.getBlockInfo(x, y + 1, z, true) === 0) {
+      //     blockId = biome.topBlockId;
+      //   } else if (
+      //     y >= height - 3 ||
+      //     this.getBlockInfo(x, y + 4, z, true) === 0 ||
+      //     this.getBlockInfo(x, y + 3, z, true) === 0 ||
+      //     this.getBlockInfo(x, y + 2, z, true) === 0
+      //   ) {
+      //     blockId = biome.bottomBlockId;
+      //   }
+      // }
+
+      if (!solid && blockId === 1 && y >= 25) {
+        const highestBlock = this.getHighestBlock(x, z, false);
+        if (highestBlock === y) {
           blockId = biome.topBlockId;
-        } else if (
-          y >= height - 3 ||
-          this.getBlockInfo(x, y + 4, z, true) === 0 ||
-          this.getBlockInfo(x, y + 3, z, true) === 0 ||
-          this.getBlockInfo(x, y + 2, z, true) === 0
-        ) {
+        } else if (highestBlock - y <= 6) {
           blockId = biome.bottomBlockId;
         }
       }
@@ -667,17 +676,37 @@ export default () => {
           ];
           let queue = [block];
           while (queue.length > 0) {
-            let qIndex = 0;
+            let sIndex = 0;
             for (let n = 0; n < queue.length; n++) {
-              const node = queue[n];
+              const node = queue[n],
+                selectedNode = queue[sIndex];
+              if (this.getHighestBlock(selectedNode.x, selectedNode.z) < y) {
+                continue;
+              } else if (this.getHighestBlock(node.x, node.z) < node.y) {
+                sIndex = n;
+              }
+              if (!selectedNode.nearestHighestBlock) {
+              }
+              selectedNode.nearestHighestBlockDistance = selectedNode.nearestHighestBlockDistance
+                ? selectedNode.nearestHighestBlockDistance
+                : this.getNearestHighestBlockDistance(
+                    selectedNode.x,
+                    selectedNode.y,
+                    selectedNode.z
+                  );
+
+              node.nearestHighestBlockDistance = node.nearestHighestBlockDistance
+                ? node.nearestHighestBlockDistance
+                : this.getNearestHighestBlockDistance(node.x, node.y, node.z);
               if (
-                Math.abs(height - queue[qIndex].y) > Math.abs(height - node.y)
+                selectedNode.nearestHighestBlockDistance >
+                node.nearestHighestBlockDistance
               ) {
-                qIndex = n;
+                sIndex = n;
               }
             }
-            let q = queue.splice(qIndex, 1)[0];
-            if (q.y === height) {
+            const q = queue.splice(sIndex, 1)[0];
+            if (this.getHighestBlock(q.x, q.z) < q.y) {
               lights[i] = q.lightLevel;
               break;
             }
@@ -717,7 +746,7 @@ export default () => {
               if (value2 !== 0) {
                 continue;
               }
-              let lightLevel =
+              const lightLevel =
                 surroundings[n].x === 0 && surroundings[n].z === 0
                   ? q.lightLevel
                   : q.lightLevel - 1;
@@ -743,6 +772,159 @@ export default () => {
         }
       }
       return lights;
+    };
+
+    this.getHighestBlock = (x, z, withCB = true) => {
+      let high = 62,
+        low = 25,
+        middle = Math.round((high + low) / 2);
+      while (low <= high) {
+        if (
+          this.getBlockInfo(x, middle, z, true) === 1 &&
+          this.getBlockInfo(x, middle + 1, z, true) === 0
+        ) {
+          break;
+        } else if (this.getBlockInfo(x, middle, z, true) === 0) {
+          high = middle - 1;
+        } else {
+          low = middle + 1;
+        }
+        middle = Math.round((high + low) / 2);
+      }
+      if (!withCB) {
+        return middle;
+      }
+      const emptyYValues = [];
+      for (let stringCoords in changedBlocks) {
+        const coords = stringCoords.split(":").map(coord => {
+            return parseInt(coord);
+          }),
+          value = changedBlocks[stringCoords];
+
+        if (coords[0] === x && coords[2] === z) {
+          if (value === 0) {
+            emptyYValues.push(coords[1]);
+            while (emptyYValues.indexOf(middle) !== -1) {
+              middle -= 1;
+            }
+          } else if (value !== 0 && coords[1] > middle) {
+            middle = coords[1];
+          }
+        }
+      }
+      return middle;
+    };
+
+    this.getNearestHighestBlockDistance = (x, y, z) => {
+      let r = 0,
+        shortestDistance = this.manhattanDistance3D(
+          x,
+          y,
+          z,
+          x,
+          this.getHighestBlock(x, z) + 1,
+          z
+        );
+      while (this.manhattanDistance(x, z, x + r, z + r) < shortestDistance) {
+        r += 1;
+        shortestDistance = Math.min(
+          this.manhattanDistance3D(
+            x,
+            y,
+            z,
+            x - r,
+            this.getHighestBlock(x - r, z - r) + 1,
+            z - r
+          ),
+          shortestDistance
+        );
+        shortestDistance = Math.min(
+          this.manhattanDistance3D(
+            x,
+            y,
+            z,
+            x - r,
+            this.getHighestBlock(x - r, z + r) + 1,
+            z + r
+          ),
+          shortestDistance
+        );
+        shortestDistance = Math.min(
+          this.manhattanDistance3D(
+            x,
+            y,
+            z,
+            x + r,
+            this.getHighestBlock(x + r, z - r) + 1,
+            z - r
+          ),
+          shortestDistance
+        );
+        shortestDistance = Math.min(
+          this.manhattanDistance3D(
+            x,
+            y,
+            z,
+            x + r,
+            this.getHighestBlock(x + r, z + r) + 1,
+            z + r
+          ),
+          shortestDistance
+        );
+        for (let z2 = -r + 1; z2 <= r - 1; z2++) {
+          shortestDistance = Math.min(
+            this.manhattanDistance3D(
+              x,
+              y,
+              z,
+              x - r,
+              this.getHighestBlock(x - r, z2) + 1,
+              z2
+            ),
+            shortestDistance
+          );
+        }
+        for (let z2 = -r + 1; z2 <= r - 1; z2++) {
+          shortestDistance = Math.min(
+            this.manhattanDistance3D(
+              x,
+              y,
+              z,
+              x + r,
+              this.getHighestBlock(x + r, z2) + 1,
+              z2
+            ),
+            shortestDistance
+          );
+        }
+        for (let x2 = -r + 1; x2 <= r - 1; x2++) {
+          shortestDistance = Math.min(
+            this.manhattanDistance3D(
+              x,
+              y,
+              z,
+              x2,
+              this.getHighestBlock(x2, z - r) + 1,
+              z - r
+            ),
+            shortestDistance
+          );
+        }
+        for (let x2 = -r + 1; x2 <= r - 1; x2++) {
+          shortestDistance = Math.min(
+            this.manhattanDistance3D(
+              x,
+              y,
+              z,
+              x2,
+              this.getHighestBlock(x2, z + r) + 1,
+              z + r
+            ),
+            shortestDistance
+          );
+        }
+      }
+      return shortestDistance;
     };
 
     this.linearInterpolate3d = (
@@ -796,6 +978,12 @@ export default () => {
 
     this.dist = (x1, y1, z1, x2, y2, z2) =>
       Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2);
+
+    this.manhattanDistance = (x1, z1, x2, z2) =>
+      Math.abs(x1 - x2) + Math.abs(z1 - z2);
+
+    this.manhattanDistance3D = (x1, y1, z1, x2, y2, z2) =>
+      Math.abs(x1 - x2) + Math.abs(y1 - y2) + Math.abs(z1 - z2);
   }
   function calcQuads(get, getLighting, dims) {
     const planes = [],
@@ -913,12 +1101,12 @@ export default () => {
         const get = (i, j, k) =>
           blocks[i * stride[0] + j * stride[1] + k * stride[2]];
 
-        const lighting = new Uint16Array(size * size * size * 6);
+        const lighting = new Uint16Array(size ** 3 * 6);
 
         const setLighting = (i, j, k, l, v) =>
-          (lighting[i * 16 * 16 * 6 + j * 16 * 6 + k * 6 + l] = v);
+          (lighting[i * 16 ** 2 * 6 + j * 16 * 6 + k * 6 + l] = v);
         const getLighting = (i, j, k, l) =>
-          lighting[i * 16 * 16 * 6 + j * 16 * 6 + k * 6 + l];
+          lighting[i * 16 ** 2 * 6 + j * 16 * 6 + k * 6 + l];
 
         // CAVES
         // const caveLength = caves.caveLength;
@@ -1094,7 +1282,7 @@ export default () => {
         set(x + 1, z + 1, y + 1, type);
 
         if (data.find(ele => ele)) {
-          const quads = calcQuads(get, dims);
+          const quads = calcQuads(get, null, dims);
 
           postMessage({ cmd, quads, block, type, chunkName });
         } else postMessage({ cmd, quads: [], block, type, chunkName });

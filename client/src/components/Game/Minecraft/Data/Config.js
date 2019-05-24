@@ -56,7 +56,7 @@ export default {
     posX: 0,
     posY: 30,
     posZ: 0,
-    horzD: 1,
+    horzD: 3,
     vertD: 1,
     reachDst: 7
   },
