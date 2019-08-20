@@ -1,5 +1,9 @@
 ![](https://i.imgur.com/SdFI2bi.png)
 
+<a href="https://discord.gg/xQHPHgZ" align="center">
+<img src="https://img.shields.io/discord/612114066873516032.svg?style=for-the-badge" />
+</a>
+
 ### Disclaimer
 
 :pushpin: This project is a work in progress. There's still a lot of features waiting to be implemented, and the game is far from being the actual game.
@@ -8,7 +12,7 @@
 
 # Motivation
 
-Having to open an additional app to play a game is sometimes too tiring. Therefore, I thought it'd be interesting to somehow implement Minecraft with javascript, essentially bringing the whole Minecraft game into the web. This not only takes away the tedious process of installing the game, it also brings the entire game to players within a couple clicks.
+Having to open an additional app to play a game is sometimes too tiring. Therefore, I thought it'd be interesting to somehow implement Minecraft with javascript, essentially bringing the whole Minecraft game onto the web. This not only takes away the tedious process of installing the game, it also brings the entire game to players within a couple clicks.
 
 # Screenshots
 
@@ -73,7 +77,7 @@ Before cloning the repo or doing anything, be sure to install [docker](https://w
 
 ```bash
 # Install the prerequisite libraries
-yarn global add prisma graphql-cli
+yarn global add prisma graphql-cli nodemon
 
 # Clone the repository
 git clone https://github.com/ian13456/mc.js.git

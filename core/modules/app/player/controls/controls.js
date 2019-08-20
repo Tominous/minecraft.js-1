@@ -39,7 +39,7 @@ const CAMERA_CONFIG = Config.camera
 const SNEAK_DIFF = Config.player.aabb.sneakDifference
 const PLAYER_HEIGHT = P_I_2_TOE + P_I_2_TOP
 const CAM_SNEAK_DIFF = SNEAK_DIFF * PLAYER_HEIGHT * DIMENSION
-const SNEAK_ACC = Config.player.acceleration.sneak
+const SNEAK_CONSTANT = Config.player.sneakConstant
 
 class Controls {
   constructor(
@@ -55,6 +55,7 @@ class Controls {
   ) {
     /** THREEJS CAMERA CONTROL */
     this.threeControls = new PointerLockControls(
+      player,
       camera,
       canvas,
       initPos,
@@ -82,7 +83,7 @@ class Controls {
     }
 
     this.cameraMode = {
-      thirdPerson: false
+      perspective: 'first'
     }
 
     this.currJumpTime = 0
@@ -106,6 +107,7 @@ class Controls {
     this.status = status
 
     this.initListeners()
+    this.setCameraMode()
   }
 
   initListeners = () => {
@@ -117,8 +119,8 @@ class Controls {
   }
 
   tick = () => {
-    this.handleMovements()
     this.setCameraMode()
+    this.handleMovements()
     this.mouseControl.tick()
   }
 
@@ -216,7 +218,7 @@ class Controls {
       }
     } else if (down) {
       if (this.status.isSneaking && this.freshlySneaked && !this.sneakTween) {
-        delete this.unsneakTween
+        this.unsneakTween = undefined
         this.sneakTween = new TWEEN.Tween(this.camera.position)
           .to({ y: -CAM_SNEAK_DIFF }, SNEAK_TIME)
           .start()
@@ -239,7 +241,7 @@ class Controls {
         })
     }
     let acceleration = OTHER_HORZ_ACC
-    if (this.status.isSneaking) acceleration = SNEAK_ACC
+    if (this.status.isSneaking) acceleration *= SNEAK_CONSTANT
     if (left) {
       this.acc.x += -Math.sin(diry + Math.PI / 2) * acceleration
       this.acc.z += -Math.cos(diry + Math.PI / 2) * acceleration
@@ -253,7 +255,7 @@ class Controls {
     if (forward) {
       // TODO: implement sprint here.
       acceleration = FORW_ACC
-      if (this.status.isSneaking) acceleration = SNEAK_ACC
+      if (this.status.isSneaking) acceleration *= SNEAK_CONSTANT
       this.acc.x += -Math.sin(diry) * acceleration
       this.acc.z += -Math.cos(diry) * acceleration
     }
@@ -265,20 +267,33 @@ class Controls {
   }
 
   setCameraMode = () => {
-    if (this.cameraMode.thirdPerson) {
-      this.camera.position.set(
-        CAMERA_CONFIG.thirdPerson.posX,
-        CAMERA_CONFIG.thirdPerson.posY,
-        CAMERA_CONFIG.thirdPerson.posZ
-      )
-    } else {
+    if (this.cameraMode.perspective === 'first') {
+      this.camera.rotation.y = 0
+      this.player.skin.setVisible(false)
       this.camera.position.set(
         CAMERA_CONFIG.posX,
         CAMERA_CONFIG.posY,
         CAMERA_CONFIG.posZ
       )
+    } else if (this.cameraMode.perspective === 'second') {
+      this.player.skin.setVisible(true)
+      this.camera.position.set(
+        CAMERA_CONFIG.thirdPerson.posX,
+        CAMERA_CONFIG.thirdPerson.posY,
+        CAMERA_CONFIG.thirdPerson.posZ
+      )
+    } else if (this.cameraMode.perspective === 'third') {
+      this.player.skin.setVisible(true)
+      this.camera.position.set(
+        CAMERA_CONFIG.secondPerson.posX,
+        CAMERA_CONFIG.secondPerson.posY,
+        CAMERA_CONFIG.secondPerson.posZ
+      )
+      this.camera.rotation.y = Math.PI
     }
   }
+
+  isCameraThirdPerson = () => this.cameraMode.perspective !== 'first'
 
   registerKeys = () => {
     const chatRef = this.world.getChat()
@@ -327,7 +342,9 @@ class Controls {
         this.movements.forward = false
         this.status.registerWalk()
       },
-      this.status.registerSprint,
+      () => {
+        if (!this.status.isHungry) this.status.registerSprint()
+      },
       { immediate: true }
     )
 
@@ -374,16 +391,21 @@ class Controls {
       () => {
         this.movements.down = false
         this.sneakNode = null
-        delete this.sneakTween
+        this.sneakTween = undefined
         this.freshlyUnsneaked = true
       }
     )
 
-    this.keyboard.registerKey(
-      CAMERA_KEYS.thirdPerson,
-      'moving',
-      () => (this.cameraMode.thirdPerson = !this.cameraMode.thirdPerson)
-    )
+    this.keyboard.registerKey(CAMERA_KEYS.togglePerspective, 'moving', () => {
+      const { perspective } = this.cameraMode
+      if (perspective === 'third') {
+        this.cameraMode.perspective = 'first'
+      } else if (perspective === 'second') {
+        this.cameraMode.perspective = 'third'
+      } else {
+        this.cameraMode.perspective = 'second'
+      }
+    })
 
     this.keyboard.registerKey(MULTIPLAYER_KEYS.openChat, 'moving', () => {
       this.threeControls.unlock()
@@ -649,10 +671,14 @@ class Controls {
   getObject = () => this.threeControls.getObject()
 
   getNormalizedCamPos = (dec = COORD_DEC) => {
-    const camPos = this.camera.position.clone()
-    const objPos = this.getObject().position.clone()
-    const position = objPos.add(camPos)
+    const position = this.getCamPos()
     return Helpers.floorPos(Helpers.worldToBlock(position, false), dec)
+  }
+
+  getCamPos = () => {
+    const position = new THREE.Vector3()
+    this.camera.getWorldPosition(position)
+    return Helpers.floorPos(position, 0)
   }
 
   getNormalizedObjPos = (dec = COORD_DEC) => {

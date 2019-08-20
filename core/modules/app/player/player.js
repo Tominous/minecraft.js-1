@@ -5,14 +5,18 @@ import {
   UPDATE_PLAYER_MUTATION,
   PLAYER_SUBSCRIPTION
 } from '../../../lib/graphql'
-import { Inventory, PlayerStatus } from '../../interfaces'
+import { Inventory } from '../../interfaces'
+import PlayerObject from '../../../lib/playerObject/playerObject'
+import OriginalSteve from '../../../assets/skin/Original_Steve.png'
 
 import Status from './status/status'
 import Controls from './controls/controls'
 import Viewport from './viewport/viewport'
 
-const P_I_2_TOE = Config.player.aabb.eye2toe
+import { Vector2, Vector3 } from 'three'
 
+const P_I_2_TOE = Config.player.aabb.eye2toe
+const HEALTH_MIN = Config.player.health.min
 class Player extends Stateful {
   constructor(
     apolloClient,
@@ -29,7 +33,8 @@ class Player extends Stateful {
   ) {
     super({ prevPos: '', prevDir: '' })
 
-    const { id, user, gamemode, inventory } = playerData
+    this.playerData = playerData
+    const { id, user, inventory } = playerData
 
     this.data = {
       id,
@@ -42,13 +47,16 @@ class Player extends Stateful {
     this.camera = camera
     this.world = world
 
-    this.status = new Status(gamemode, this)
-    this.playerStatus = new PlayerStatus(
-      gamemode,
-      playerData,
-      container,
-      resourceManager
+    this.skin = new PlayerObject(
+      OriginalSteve,
+      new Vector3(playerData.x, playerData.y, playerData.z),
+      new Vector2(playerData.dirx, playerData.diry),
+      playerData.gamemode,
+      { visible: true }
     )
+    scene.add(this.skin)
+
+    this.status = new Status(this, playerData, container, resourceManager)
 
     this.inventory = new Inventory(
       this.data.playerId,
@@ -69,13 +77,13 @@ class Player extends Stateful {
       blocker,
       button,
       {
-        x: playerData.x,
-        y: playerData.y,
-        z: playerData.z
+        x: this.playerData.x,
+        y: this.playerData.y,
+        z: this.playerData.z
       },
       {
-        dirx: playerData.dirx,
-        diry: playerData.diry
+        dirx: this.playerData.dirx,
+        diry: this.playerData.diry
       }
     )
 
@@ -88,43 +96,6 @@ class Player extends Stateful {
   }
 
   initUpdaters = () => {
-    this.posUpdater = window.requestInterval(() => {
-      const { prevPos, prevDir } = this.state
-
-      const playerCoords = this.getCoordinates(3)
-      const playerCoordsRep = Helpers.get3DCoordsRep(
-        playerCoords.x,
-        playerCoords.y,
-        playerCoords.z
-      )
-
-      const playerDir = this.getDirections()
-      const playerDirRep = Helpers.get2DCoordsRep(
-        playerDir.dirx,
-        playerDir.diry
-      )
-
-      // eslint-disable-next-line no-restricted-syntax
-      for (const member in playerCoords)
-        if (playerCoords[member] !== 0 && !playerCoords[member]) return
-      // eslint-disable-next-line no-restricted-syntax
-      for (const member in playerDir)
-        if (playerDir[member] !== 0 && !playerDir[member]) return
-
-      if (playerCoordsRep !== prevPos || playerDirRep !== prevDir) {
-        this.setState({ prevPos: playerCoordsRep, prevDir: playerDirRep })
-
-        this.apolloClient.mutate({
-          mutation: UPDATE_PLAYER_MUTATION,
-          variables: {
-            id: this.data.id,
-            ...playerCoords,
-            ...playerDir
-          }
-        })
-      }
-    }, 500)
-
     if (this.world.playersManager.getPlayerCount() > 0)
       this.posSocketUpdater = window.requestInterval(() => {
         const playerCoords = this.getCoordinates(3)
@@ -163,6 +134,20 @@ class Player extends Stateful {
     this.controls.tick()
     this.status.tick()
     this.viewport.tick()
+
+    this.updateSkin()
+  }
+
+  updateSkin = () => {
+    const pos = this.getCoordinates(3)
+    const dir = this.getDirections()
+
+    this.skin.setPosition(pos.x, pos.y, pos.z)
+    this.skin.setDirection(dir.dirx, dir.diry)
+  }
+
+  updateViewport = () => {
+    this.viewport.updateHelmet()
   }
 
   handleServerUpdate = ({
@@ -171,13 +156,51 @@ class Player extends Stateful {
     }
   }) => {
     this.status.setGamemode(gamemode)
-    this.playerStatus.setGamemode(gamemode)
     this.inventory.setGamemode(gamemode)
+    this.skin.setGamemode(gamemode)
+  }
+
+  saveApollo = () => {
+    this.saveAttributes()
+  }
+
+  saveAttributes = () => {
+    const { prevPos, prevDir } = this.state
+
+    const playerCoords = this.getCoordinates(3)
+    const playerCoordsRep = Helpers.get3DCoordsRep(
+      playerCoords.x,
+      playerCoords.y,
+      playerCoords.z
+    )
+
+    const playerDir = this.getDirections()
+    const playerDirRep = Helpers.get2DCoordsRep(playerDir.dirx, playerDir.diry)
+    const playerStatus = this.status.getStatus()
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const member in playerCoords)
+      if (playerCoords[member] !== 0 && !playerCoords[member]) return
+    // eslint-disable-next-line no-restricted-syntax
+    for (const member in playerDir)
+      if (playerDir[member] !== 0 && !playerDir[member]) return
+
+    if (playerCoordsRep !== prevPos || playerDirRep !== prevDir) {
+      this.setState({ prevPos: playerCoordsRep, prevDir: playerDirRep })
+
+      this.apolloClient.mutate({
+        mutation: UPDATE_PLAYER_MUTATION,
+        variables: {
+          id: this.data.id,
+          ...playerCoords,
+          ...playerDir,
+          ...playerStatus
+        }
+      })
+    }
   }
 
   removeUpdaters = () => {
-    window.clearRequestInterval(this.posUpdater)
-
     if (this.posSocketUpdater)
       window.clearRequestInterval(this.posSocketUpdater)
   }
@@ -193,6 +216,8 @@ class Player extends Stateful {
   /* -------------------------------------------------------------------------- */
   getCamera = () => this.camera
 
+  getCamPos = () => this.controls.getCamPos()
+
   getCamCoordinates = dec => this.controls.getNormalizedCamPos(dec)
 
   getCoordinates = dec => this.controls.getFeetCoords(dec)
@@ -206,6 +231,10 @@ class Player extends Stateful {
   getPosition = () => this.controls.getObject().position
 
   getObject = () => this.controls.getObject()
+
+  getSkin = () => this.skin
+
+  isDead = () => this.health === HEALTH_MIN
 
   /* -------------------------------------------------------------------------- */
   /*                                   SETTERS                                  */

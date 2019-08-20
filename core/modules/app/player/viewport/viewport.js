@@ -19,9 +19,9 @@ function Viewport(player, world, scene) {
 
   /** MESH SETUP */
   const helmetGeo = new THREE.BoxBufferGeometry(
-    DIMENSION / 2,
-    DIMENSION / 2,
-    DIMENSION / 2
+    DIMENSION * 2,
+    DIMENSION * 2,
+    DIMENSION * 2
   )
   const helmetMat = new THREE.MeshBasicMaterial({
     opacity: 0,
@@ -84,27 +84,23 @@ Viewport.prototype.updateHelmet = function() {
   /* -------------------------------------------------------------------------- */
   const helmetRef = this.getHelmet()
 
-  const playerPos = playerRef.getCamCoordinates()
+  const camPos = playerRef.getCamPos()
 
-  helmetRef.position.set(
-    playerPos.x * DIMENSION,
-    playerPos.y * DIMENSION,
-    playerPos.z * DIMENSION
-  )
+  helmetRef.position.set(camPos.x, camPos.y, camPos.z)
 
   const coords = playerRef.getCamCoordinates(0)
   const camInType = worldRef.getVoxelByVoxelCoords(coords.x, coords.y, coords.z)
-
   switch (camInType) {
     case 9:
       if (!this.getIsChanged()) {
         this.addSelf(this.getScene())
         this.setIsChanged(true)
       }
-
+      playerRef.status.setDiving(true)
       this.setFilter(WATER_COLOR, 0.2)
       break
     default:
+      playerRef.status.setDiving(false)
       if (this.getIsChanged()) this.reset()
       break
   }
@@ -195,6 +191,8 @@ Viewport.prototype.getLookingBlockInfo = function() {
   const camDir = new THREE.Vector3()
   playerRef.getCamera().getWorldDirection(camDir)
   camDir.normalize()
+  if (playerRef.controls.cameraMode.perspective === 'third')
+    camDir.multiplyScalar(-1)
 
   const camPos = objectRef.position
 

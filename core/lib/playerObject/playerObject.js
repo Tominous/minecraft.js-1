@@ -60,7 +60,8 @@ class BodyPart extends THREE.Group {
 class SkinObject extends THREE.Group {
   constructor(layer1Material, layer2Material) {
     super()
-
+    this.name = 'skin'
+    this.visible = false
     this.modelListeners = [] // called when model(slim property) is changed
     this._slim = false
 
@@ -403,10 +404,14 @@ class SkinObject extends THREE.Group {
   setOuterLayerVisible(value) {
     this.getBodyParts().forEach(part => (part.outerLayer.visible = value))
   }
+
+  setVisible(visible) {
+    this.visible = visible
+  }
 }
 
 export default class PlayerObject extends THREE.Group {
-  constructor(skinImg, pos, dir) {
+  constructor(skinImg, pos, dir, gamemode, visible = true) {
     super()
 
     this.skinImg = new Image()
@@ -425,12 +430,10 @@ export default class PlayerObject extends THREE.Group {
       transparent: true,
       opacity: 1,
       side: THREE.DoubleSide,
-      alphaTest: 0.5
+      alphaTest: 0.3
     })
 
     this.skin = new SkinObject(layer1Material, layer2Material)
-    this.skin.name = 'skin'
-    this.skin.visible = false
     this.add(this.skin)
 
     this.skinImg.crossOrigin = 'anonymous'
@@ -460,6 +463,20 @@ export default class PlayerObject extends THREE.Group {
     this.rotation.y = dir.y
 
     this.oldDirY = dir.y
+
+    this.visible = visible
+    this.skin.setVisible(visible)
+    this.materials = [layer1Material, layer2Material]
+
+    this.setGamemode(gamemode)
+  }
+
+  setPosition = (x, y, z) =>
+    this.position.set(x * DIMENSION, (y + EYE_2_TOE) * DIMENSION, z * DIMENSION)
+
+  setDirection = (dirx, diry) => {
+    this.skin.head.rotation.x = dirx
+    this.rotation.y = diry
   }
 
   tweenPosition = (x, y, z) => {
@@ -514,4 +531,37 @@ export default class PlayerObject extends THREE.Group {
   //   this.skin.head.rotation.x = x
   //   this.skin.head.rotation.y = y
   // }
+
+  getLookingDirection = () => this.skin.head.rotation
+
+  setVisible = visible => this.skin.setVisible(visible)
+
+  setGamemode = gamemode => {
+    switch (gamemode) {
+      case 'SURVIVAL':
+      case 'CREATIVE': {
+        this.materials.forEach(m => {
+          m.opacity = 1
+          m.needsUpdate = true
+        })
+        this.skin.getBodyParts().forEach(bp => (bp.visible = true))
+        this.materials[0].transparent = false
+        this.materials[0].depthTest = true
+        break
+      }
+      case 'SPECTATOR': {
+        this.skin.getBodyParts().forEach(bp => (bp.visible = false))
+        this.skin.head.visible = true
+        this.materials.forEach(m => {
+          m.opacity = 0.5
+          m.needsUpdate = true
+        })
+        this.materials[0].transparent = true
+        this.materials[0].depthTest = false
+        break
+      }
+      default:
+        break
+    }
+  }
 }

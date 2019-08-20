@@ -6,7 +6,10 @@ import { BLOCKS } from './blockDict'
 const Config = {
   tech: {
     maxWorkerCount: 4,
-    socketEndpoint: 'localhost:5000'
+    socketEndpoint: `${self.location.hostname}:5000`
+  },
+  game: {
+    autoSaveInterval: 5 * 1000 * 60 // ms
   },
   lights: {
     sunlight: {
@@ -63,13 +66,18 @@ const Config = {
     spectatorFov: 130,
     thirdPerson: {
       posX: 0,
-      posY: 50,
-      posZ: 60
+      posY: 0,
+      posZ: 80
+    },
+    secondPerson: {
+      posX: 0,
+      posY: 0,
+      posZ: -80
     }
   },
   keyboard: {
     camera: {
-      thirdPerson: 86
+      togglePerspective: 86
     },
     movements: {
       forward: 87,
@@ -107,8 +115,7 @@ const Config = {
     acceleration: {
       forward: 50,
       other_horz: 20,
-      vertical: 40,
-      sneak: 20
+      vertical: 40
     },
     jump: {
       time: 80, // ms
@@ -138,7 +145,26 @@ const Config = {
     },
     reachDst: 7,
     headBodyDeg: Math.PI / 4,
-    sneaking: -10
+    health: {
+      max: 20,
+      min: 0,
+      hungerIncrementTime: 10000,
+      hungerIncrement: 1,
+      hungerDecrementTime: 3000,
+      hungerDecrement: 1,
+      hungerMin: 1
+    },
+    hunger: {
+      max: 20,
+      min: 0,
+      hungerDecrementTime: 15000,
+      hungerDecrement: 1,
+      slowWalk: 6
+    },
+    armor: {
+      max: 20,
+      min: 0
+    }
   },
   block: {
     dimension: 32,
