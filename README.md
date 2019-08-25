@@ -6,15 +6,15 @@ An open source voxel game in javascript that can be played in your browser.
 <img src="https://img.shields.io/discord/612114066873516032.svg?style=for-the-badge" />
 </a>
 
-## Disclaimer
+## Disclaimers
 
 :pushpin: This project is a work in progress. There are still a lot of features waiting to be implemented, and the game is far from being completed. 
 
-Miner.js is not associated with Mojang or Minecraft in any sort of official capacity.
+:pushpin: Miner.js is not associated with Mojang or Minecraft in any sort of official capacity.
 
 # Motivation
 
-Having to open an additional app to play a game is sometimes too tiring. Therefore, I thought it'd be interesting to somehow implement Minecraft with javascript, essentially bringing the whole Minecraft game onto the web. This not only takes away the tedious process of installing the game, it also brings the entire game to players within a couple clicks.
+We thought it would be interesting to design a game that is inpsired by the hugely popular game "Minecraft" with javascript. We are interested to see if javascript can deliver quality graphics and performance, and interactive multiplayer gameplay within a 3D voxel type environment.
 
 # Screenshots
 
