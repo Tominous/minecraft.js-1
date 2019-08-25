@@ -1,14 +1,16 @@
-![](https://i.imgur.com/SdFI2bi.png)
+# Miner.js
+
+An open source voxel game in javascript that can be played in your browser. 
 
 <a href="https://discord.gg/xQHPHgZ" align="center">
 <img src="https://img.shields.io/discord/612114066873516032.svg?style=for-the-badge" />
 </a>
 
-### Disclaimer
+## Disclaimer
 
-:pushpin: This project is a work in progress. There's still a lot of features waiting to be implemented, and the game is far from being the actual game.
+:pushpin: This project is a work in progress. There are still a lot of features waiting to be implemented, and the game is far from being completed. 
 
-### **MC.JS brings the best-selling PC game Minecraft into the web with the power of Javascript.**
+Miner.js is not associated with Mojang or Minecraft in any sort of official capacity.
 
 # Motivation
 
@@ -18,31 +20,19 @@ Having to open an additional app to play a game is sometimes too tiring. Therefo
 
 These are some screenshots taken directly from the project.
 
-## User Authentication
-
-![](https://i.imgur.com/7v5dasa.png)
-
-![](https://i.imgur.com/5yYMYGH.png)
-
-![](https://i.imgur.com/9Tr3GmL.png)
-
-![](https://i.imgur.com/vgpqSCV.png)
-
-## Neatly Styled Game UI
-
-![](https://i.imgur.com/PoYFpdQ.jpg)
-
-![](https://i.imgur.com/du58Ifa.png)
-
 ## Awesome Graphics
 
 ![](https://i.imgur.com/v3aR0E7.png)
+*Screenshot taken with [paper-cut-resource-pack](http://www.9minecraft.net/paper-cut-resource-pack/)*
 
 ![](https://i.imgur.com/tEuhoBx.jpg)
+*Screenshot taken with [paper-cut-resource-pack](http://www.9minecraft.net/paper-cut-resource-pack/)*
 
 ![](https://i.imgur.com/5dadkka.jpg)
+*Screenshot taken with [paper-cut-resource-pack](http://www.9minecraft.net/paper-cut-resource-pack/)*
 
 ![](https://i.imgur.com/extPtZs.png)
+*Screenshot taken with [paper-cut-resource-pack](http://www.9minecraft.net/paper-cut-resource-pack/)*
 
 # Build Stack
 
@@ -100,7 +90,7 @@ After these commands, visit `localhost:3000`
 
 # Note
 
-:pushpin: MC.JS runs fastest on either Opera or Chrome.
+:pushpin: Miner.js runs fastest on either Opera or Chrome.
 
 # Sources
 
