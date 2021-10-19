@@ -1,137 +1,236 @@
 type Query {
-	users(query: String, first: Int, skip: Int, after: String): [User!]!
-	me: User!
-	myWorlds(first: Int, skip: Int, after: String): [World!]!
-	world(query: String!): World!
+  users(query: String, first: Int, skip: Int, after: String): [User!]!
+  me: User!
+  myWorlds: User!
+  world(query: String!): World!
 }
 
 type Mutation {
-	# USER
-	createUser(data: CreateUserInput!): AuthPayload!
-	login(data: LoginUserInput!): AuthPayload!
-	deleteUser: User!
-	updateUser(data: UpdateUserInput!): User!
+  # USER
+  createUser(data: CreateUserInput!): AuthPayload!
+  login(data: LoginUserInput!): AuthPayload!
+  deleteUser: User!
+  updateUser(data: UpdateUserInput!): User!
+  updateSettings(data: UpdateSettingsInput!): Settings!
 
-	# WORLD
-	createWorld(data: CreateWorldInput!): World!
-	updatePlayer(data: UpdatePlayerInput!): Player!
-	updateBlock(data: UpdateBlockInput!): Block!
+  # WORLD
+  createWorld(data: CreateWorldInput!): World!
+  createPlayer(data: CreatePlayerInput!): Boolean!
+  updateWorld(data: UpdateWorldInput!): World!
+  updatePlayer(data: UpdatePlayerInput!): Player!
+  updateBlock(data: UpdateBlockInput!): Block!
+  deleteWorld(worldId: ID!): Boolean!
+  runCommand(data: RunCommandInput!): Boolean!
+  requestChunks(data: RequestChunksInput!): Boolean!
 }
 
 type Subscription {
-	# Chunks
-	block(worldId: ID!): BlockSubscriptionPayload!
+  # Chunks
+  block(worldId: ID!): BlockSubscriptionPayload!
+  message(worldId: ID!): MessageSubscriptionPayload!
+  player(
+    username: String!
+    worldId: ID!
+    mutation_in: [String!]
+    updatedFields_contains_some: [String!]
+  ): PlayerSubscriptionPayload!
+  world(
+    worldId: ID!
+    mutation_in: [String!]
+    updatedFields_contains_some: [String!]
+  ): WorldSubscriptionPayload!
 }
 
 type User {
-	id: ID!
-	username: String!
-	email: String!
-	password: String!
-	worlds: [World!]!
-	updatedAt: String!
-	createdAt: String!
+  id: ID!
+  username: String!
+  email: String!
+  password: String!
+  worlds: [World!]!
+  settings: Settings!
+  updatedAt: String!
+  createdAt: String!
 }
 
 type World {
-	id: ID!
-	name: String!
-	seed: String!
-	changedBlocks: [Block!]!
-	players: [Player!]!
+  id: ID!
+  name: String!
+  seed: String!
+  type: WorldType!
+  time: Float!
+  timeChanger: Float
+  days: Int!
+  lastPlayed: String!
+  changedBlocks: [Block!]!
+  players: [Player!]!
+}
+
+type Message {
+  world: World!
+  type: MessageType!
+  sender: String
+  body: String!
 }
 
 type Player {
-	id: ID!
-	isAdmin: Boolean!
-	gamemode: String!
-	user: User!
-	world: World!
-	lastLogin: String
-	x: Float!
-	y: Float!
-	z: Float!
-	dirx: Float!
-	diry: Float!
-	inventory: Inventory!
+  id: ID!
+  isAdmin: Boolean!
+  gamemode: String!
+  user: User!
+  world: World!
+  lastLogin: String
+  x: Float!
+  y: Float!
+  z: Float!
+  dirx: Float!
+  diry: Float!
+  inventory: Inventory!
+  health: Int!
+  armor: Int!
+  hunger: Int!
+}
+
+type Settings {
+  id: ID!
+  renderDistance: Int!
 }
 
 type Block {
-	representation: String!
-	type: Int!
-	world: World!
-	x: Int!
-	y: Int!
-	z: Int!
+  representation: String!
+  type: Int!
+  world: World!
+  x: Int!
+  y: Int!
+  z: Int!
 }
 
 type Inventory {
-	player: Player!
-	cursor: Int!
-	data: String!
+  player: Player!
+  cursor: Int!
+  data: String!
 }
 
 input CreateUserInput {
-	email: String!
-	password: String!
-	username: String!
+  email: String!
+  password: String!
+  username: String!
 }
 
 input LoginUserInput {
-	email: String!
-	password: String!
+  email: String!
+  password: String!
 }
 
 input UpdateUserInput {
-	username: String
-	email: String
-	password: String
+  username: String
+  email: String
+  password: String
 }
 
 input CreateWorldInput {
-	name: String!
-	seed: String!
-	gamemode: Gamemode!
+  name: String!
+  seed: String!
+  gamemode: Gamemode!
+  type: WorldType!
+}
+
+input CreatePlayerInput {
+  worldId: ID!
+  gamemode: Gamemode!
+}
+
+input UpdateWorldInput {
+  id: ID!
+  name: String
+  time: Float
+  days: Int
+}
+
+input UpdateSettingsInput {
+  id: ID!
+  renderDistance: Int
 }
 
 input UpdatePlayerInput {
-	id: ID!
-	x: Float
-	y: Float
-	z: Float
-	dirx: Float
-	diry: Float
-	cursor: Int
-	data: String
+  id: ID!
+  x: Float
+  y: Float
+  z: Float
+  dirx: Float
+  diry: Float
+  cursor: Int
+  data: String
+  health: Int
+  armor: Int
+  hunger: Int
 }
 
 input UpdateBlockInput {
-	worldId: ID!
-	type: Int!
-	x: Int!
-	y: Int!
-	z: Int!
+  worldId: ID!
+  type: Int!
+  x: Int!
+  y: Int!
+  z: Int!
+}
+
+input RunCommandInput {
+  playerId: ID!
+  worldId: ID!
+  command: String!
+}
+
+input RequestChunksInput {
+  worldId: ID!
+  playerId: ID!
+  chunks: [String!]! # array of chunk reps ("x:z")
 }
 
 type AuthPayload {
-	token: String!
-	user: User!
+  token: String!
+  user: User!
 }
 
 enum Gamemode {
-	SURVIVAL
-	CREATIVE
-	ADVENTURE
-	SPECTATOR
+  SURVIVAL
+  CREATIVE
+  ADVENTURE
+  SPECTATOR
 }
 
 enum MutationType {
-	CREATED
-	UPDATED
-	DELETED
+  CREATED
+  UPDATED
+  DELETED
+}
+
+enum MessageType {
+  ERROR
+  PLAYER
+  SERVER
+  INFO
+}
+
+enum WorldType {
+  DEFAULT
+  SUPERFLAT
 }
 
 type BlockSubscriptionPayload {
-	mutation: MutationType!
-	node: Block
+  mutation: MutationType!
+  node: Block
+}
+
+type MessageSubscriptionPayload {
+  mutation: MutationType!
+  node: Message
+}
+
+type PlayerSubscriptionPayload {
+  mutation: MutationType!
+  node: Player
+}
+
+type WorldSubscriptionPayload {
+  mutation: MutationType!
+  node: World
 }

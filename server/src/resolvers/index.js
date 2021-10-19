@@ -1,9 +1,11 @@
-import Query from './Query'
-import Mutation from './Mutation'
-import Subscription from './Subscription'
+import Query from './queries'
+import Mutation from './mutations'
+import Subscription from './subscriptions'
+import Types from './types'
 
 export const resolvers = {
-	Query,
-	Mutation,
-	Subscription
+  Query,
+  Mutation,
+  Subscription,
+  ...Types,
 }

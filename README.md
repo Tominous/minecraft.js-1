@@ -1,18 +1,38 @@
-# MinecraftJS
+# Miner.js
 
-MinecraftJS brings the best-selling PC game "Minecraft" into the web with the power of javascript.
+An open source voxel game in javascript that can be played in your browser. 
+
+<a href="https://discord.gg/xQHPHgZ" align="center">
+<img src="https://img.shields.io/discord/612114066873516032.svg?style=for-the-badge" />
+</a>
+
+## Disclaimers
+
+:pushpin: This project is a work in progress. There are still a lot of features waiting to be implemented, and the game is far from being completed. 
+
+:pushpin: Miner.js is not associated with Mojang or Minecraft in any sort of official capacity.
 
 # Motivation
 
-Having to open an additional app to play a game is sometimes too tiring. Therefore, we thought it'd be interesting to somehow implement Minecraft with javascript, essentially bringing the whole Minecraft game into the web. This not only takes away the tedious process of installing the game, it also brings the entire game to players with a couple clicks.
+We thought it would be interesting to design a game that is inpsired by the hugely popular game "Minecraft" with javascript. We are interested to see if javascript can deliver quality graphics and performance, and interactive multiplayer gameplay within a 3D voxel type environment.
 
 # Screenshots
 
-Simple and working terrain generation
-![](https://i.imgur.com/KMg9TUs.png)
+These are some screenshots taken directly from the project.
 
-Ability to build and break blocks
-![](https://i.imgur.com/vRnmoMQ.png)
+## Awesome Graphics
+
+![](https://i.imgur.com/v3aR0E7.png)
+*Screenshot taken with [paper-cut-resource-pack](http://www.9minecraft.net/paper-cut-resource-pack/)*
+
+![](https://i.imgur.com/tEuhoBx.jpg)
+*Screenshot taken with [paper-cut-resource-pack](http://www.9minecraft.net/paper-cut-resource-pack/)*
+
+![](https://i.imgur.com/5dadkka.jpg)
+*Screenshot taken with [paper-cut-resource-pack](http://www.9minecraft.net/paper-cut-resource-pack/)*
+
+![](https://i.imgur.com/extPtZs.png)
+*Screenshot taken with [paper-cut-resource-pack](http://www.9minecraft.net/paper-cut-resource-pack/)*
 
 # Build Stack
 
@@ -20,6 +40,7 @@ Javascript.
 
 ## Frontend
 
+- [three.js](https://threejs.org)
 - [react.js](https://reactjs.org/)
 - [react-router](https://github.com/ReactTraining/react-router)
 - [apollo](https://www.apollographql.com/)
@@ -45,37 +66,34 @@ Javascript.
 Before cloning the repo or doing anything, be sure to install [docker](https://www.docker.com/) and [node](https://nodejs.org/en/) on your computer. After that, run the following commands:
 
 ```bash
-# Clone the repo
-git clone https://github.com/ian13456/minecraft.js.git
+# Install the prerequisite libraries
+yarn global add prisma graphql-cli nodemon
 
-# Download packages for server and client with:
-npm install
+# Clone the repository
+git clone https://github.com/ian13456/mc.js.git
 
-# Start docker containers
-cd server/prisma
-docker-compose up -d
+# Download packages for both server and client
+yarn
 
-# Start backend service
-cd server
-npm start
+# Export environment variables for prisma
+# FOR WINDOWS
+set PRISMA_MANAGEMENT_API_SECRET=my-secret
+# FOR MAC/LINUX (recommend putting this into .bashrc)
+export PRISMA_MANAGEMENT_API_SECRET=my-secret
 
-# Start frontend service
-cd client
-npm start
+# Start all services
+yarn run init # only needed when running for the first time
+yarn run start
 ```
 
 After these commands, visit `localhost:3000`
 
-# To-do's
+# Note
 
-- Lighting
-- Chat system
-- Command system
-- Better terrain generation (caves)
-- Random structures (villages)
-- Inventory system
-- Trivial things such as
-  - Block breaking cooldowns
-  - Special items (swords, pickaxes)
-- Better UI designs
-- Dockerize the entire project altogether
+:pushpin: Miner.js runs fastest on either Opera or Chrome.
+
+# Sources
+
+- [Resource Pack Used](http://www.9minecraft.net/paper-cut-resource-pack/)
+- [Multiplayer Player Mesh](https://github.com/bs-community/skinview3d)
+- [Home Page Panorama Library](https://pannellum.org)
